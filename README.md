@@ -1,22 +1,10 @@
-# Welcome to your Lovable project
+# Referrify - Connect Careers
 
-## Project info
+## Project Description
 
-**URL**: https://lovable.dev/projects/0a199ccd-6772-4665-ab2d-8fb51b1779e3
+Referrify is a career referral platform that connects students with alumni and professionals to unlock job opportunities through meaningful referrals.
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/0a199ccd-6772-4665-ab2d-8fb51b1779e3) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## How to run this project locally
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -62,12 +50,14 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/0a199ccd-6772-4665-ab2d-8fb51b1779e3) and click on Share -> Publish.
+You can deploy this project to various platforms like Vercel, Netlify, or any hosting service that supports Node.js applications.
 
-## Can I connect a custom domain to my Lovable project?
+For Vercel:
+1. Connect your GitHub repository to Vercel
+2. Configure build settings (build command: `npm run build`, output directory: `dist`)
+3. Deploy
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+For Netlify:
+1. Connect your repository to Netlify
+2. Set build command: `npm run build` and publish directory: `dist`
+3. Deploy

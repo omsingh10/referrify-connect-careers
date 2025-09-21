@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,10 +25,13 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useProfilePicture } from "@/hooks/use-profile-picture";
 
 const StudentSettings = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { profilePicture, uploadProfilePicture, removeProfilePicture } = useProfilePicture();
   
   // Form states
   const [profile, setProfile] = useState({
@@ -108,6 +111,37 @@ const StudentSettings = () => {
     setAchievements(achievements.filter(achievement => achievement !== achievementToRemove));
   };
 
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        await uploadProfilePicture(file);
+        toast({
+          title: "Success",
+          description: "Profile picture uploaded successfully.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to upload profile picture.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleRemoveProfilePicture = () => {
+    removeProfilePicture();
+    toast({
+      title: "Success",
+      description: "Profile picture removed successfully.",
+    });
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -161,19 +195,35 @@ const StudentSettings = () => {
                 </CardHeader>
                 <CardContent className="text-center">
                   <Avatar className="w-32 h-32 mx-auto mb-4">
-                    <AvatarFallback className="gradient-primary text-white text-2xl">
-                      {profile.firstName[0]}{profile.lastName[0]}
-                    </AvatarFallback>
+                    {profilePicture ? (
+                      <AvatarImage src={profilePicture} alt="Profile" />
+                    ) : (
+                      <AvatarFallback className="gradient-primary text-white text-2xl">
+                        {profile.firstName[0]}{profile.lastName[0]}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <div className="space-y-2">
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={triggerFileUpload}>
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Photo
                     </Button>
-                    <Button variant="ghost" className="w-full text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full text-destructive" 
+                      onClick={handleRemoveProfilePicture}
+                      disabled={!profilePicture}
+                    >
                       Remove Photo
                     </Button>
                   </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePictureUpload}
+                    className="hidden"
+                  />
                 </CardContent>
               </Card>
 

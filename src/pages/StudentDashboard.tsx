@@ -1,576 +1,351 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ReferralModal } from "@/components/ReferralModal";
-import { SearchBar } from "@/components/SearchBar";
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { useProfileStorage, type UserProfile } from '@/hooks/use-profile-storage';
+import { useProfilePicture } from '@/hooks/use-profile-picture';
+import { useNavigate } from 'react-router-dom';
+import { clearUserSession } from '@/lib/storage';
+import { getActiveJobs, type Job } from '@/lib/job-storage';
+import { NotificationPanel, NotificationBell } from '@/components/NotificationSystem';
+import { getApplications } from '@/lib/notification-system';
 import { 
-  Upload, 
-  Search, 
-  Briefcase, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Brain,
-  TrendingUp,
+  Home,
+  Users,
   FileText,
-  Building,
-  Calendar,
-  Filter,
-  Settings,
-  Plus,
-  X
-} from "lucide-react";
+  BookOpen,
+  User,
+  ArrowRight,
+  Camera,
+  Upload,
+  LogOut
+} from 'lucide-react';
 
 const StudentDashboard = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
-  const [newSkill, setNewSkill] = useState("");
-  
-  // Enhanced profile data with additional fields
-  const [profileData, setProfileData] = useState({
-    name: "Alex Johnson",
-    email: "alex.johnson@university.edu",
-    bio: "Computer Science student passionate about full-stack development and machine learning.",
-    skills: ["React", "Python", "Machine Learning", "JavaScript"],
-    achievements: ["Dean's List Fall 2023", "Hackathon Winner - TechCrunch Disrupt"],
-    socialLinks: {
-      linkedin: "https://linkedin.com/in/alexjohnson",
-      github: "https://github.com/alexjohnson",
-      website: "https://alexjohnson.dev"
-    },
-    resumeUploaded: true,
-    matchScore: 85
-  });
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { profile } = useProfileStorage();
+  const { profilePicture, uploadProfilePicture, getInitials } = useProfilePicture();
+  const [activeSection, setActiveSection] = useState('Home');
+  const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [myApplications, setMyApplications] = useState<any[]>([]);
 
-  const jobs = [
-    {
-      id: 1,
-      title: "Software Engineer Intern",
-      company: "TechCorp",
-      location: "San Francisco, CA",
-      skills: ["React", "JavaScript", "Node.js"],
-      matchScore: 92,
-      postedBy: "Sarah Chen",
-      postedDate: "2 days ago",
-      applicants: 12
-    },
-    {
-      id: 2,
-      title: "Data Science Intern",
-      company: "DataFlow Inc",
-      location: "New York, NY",
-      skills: ["Python", "Machine Learning", "SQL"],
-      matchScore: 87,
-      postedBy: "Michael Brown",
-      postedDate: "1 week ago",
-      applicants: 8
-    },
-    {
-      id: 3,
-      title: "Frontend Developer",
-      company: "StartupXYZ",
-      location: "Austin, TX",
-      skills: ["React", "TypeScript", "CSS"],
-      matchScore: 78,
-      postedBy: "Emily Davis",
-      postedDate: "3 days ago",
-      applicants: 15
+  // Load recent jobs and applications
+  useEffect(() => {
+    const loadData = () => {
+      try {
+        const activeJobs = getActiveJobs();
+        setRecentJobs(activeJobs.slice(0, 3)); // Show first 3 jobs
+        
+        const allApplications = getApplications();
+        const studentEmail = profile.email || "john.student@example.com";
+        const myApps = allApplications.filter(app => app.studentEmail === studentEmail);
+        setMyApplications(myApps);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    
+    loadData();
+  }, [profile.email]);
+
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        await uploadProfilePicture(file);
+      } catch (error) {
+        console.error('Failed to upload profile picture:', error);
+        alert('Failed to upload profile picture: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
     }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleLogout = () => {
+    clearUserSession();
+    navigate('/auth');
+  };
+
+  const sidebarItems = [
+    { id: 'Home', label: 'Home', icon: Home, active: true },
+    { id: 'Referrals', label: 'Referrals', icon: Users, active: false },
+    { id: 'Resume Analyzer', label: 'Resume Analyzer', icon: FileText, active: false },
+    { id: 'Resources', label: 'Resources', icon: BookOpen, active: false },
+    { id: 'Profile', label: 'Profile', icon: User, active: false },
   ];
 
-  const referralStatus = [
-    {
-      id: 1,
-      jobTitle: "Software Engineer Intern",
-      company: "TechCorp",
-      status: "pending",
-      appliedDate: "Nov 15, 2024",
-      alumni: "Sarah Chen"
-    },
-    {
-      id: 2,
-      jobTitle: "Data Science Intern",
-      company: "DataFlow Inc",
-      status: "accepted",
-      appliedDate: "Nov 10, 2024",
-      alumni: "Michael Brown"
-    },
-    {
-      id: 3,
-      jobTitle: "Product Manager Intern",
-      company: "InnovateLab",
-      status: "rejected",
-      appliedDate: "Nov 5, 2024",
-      alumni: "Jennifer Liu"
-    }
-  ];
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="h-4 w-4 text-warning" />;
-      case "accepted":
-        return <CheckCircle className="h-4 w-4 text-success" />;
-      case "rejected":
-        return <XCircle className="h-4 w-4 text-destructive" />;
+  const handleSectionClick = (sectionId: string) => {
+    setActiveSection(sectionId);
+    
+    // Navigate to appropriate routes
+    switch (sectionId) {
+      case 'Referrals':
+        navigate('/student/opportunities');
+        break;
+      case 'Resume Analyzer':
+        navigate('/student/resume-analyzer');
+        break;
+      case 'Resources':
+        navigate('/student/resources');
+        break;
+      case 'Profile':
+        navigate('/student/settings');
+        break;
+      case 'Home':
+        navigate('/student/dashboard');
+        break;
       default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+        break;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-warning/10 text-warning border-warning/20";
-      case "accepted":
-        return "bg-success/10 text-success border-success/20";
-      case "rejected":
-        return "bg-destructive/10 text-destructive border-destructive/20";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
+  const handleViewOpenings = () => {
+    navigate('/student/opportunities');
   };
 
-  const filteredJobs = jobs.filter(job =>
-    job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const handleReferralRequest = (job: any) => {
-    setSelectedJob(job);
-    setIsReferralModalOpen(true);
-  };
-
-  const addSkill = () => {
-    if (newSkill.trim() && !profileData.skills.includes(newSkill.trim())) {
-      setProfileData({
-        ...profileData,
-        skills: [...profileData.skills, newSkill.trim()]
-      });
-      setNewSkill("");
-    }
-  };
-
-  const removeSkill = (skillToRemove: string) => {
-    setProfileData({
-      ...profileData,
-      skills: profileData.skills.filter(skill => skill !== skillToRemove)
-    });
+  const handleAnalyzeResume = () => {
+    // Navigate to dedicated resume analyzer page
+    navigate('/student/resume-analyzer');
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-md">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="h-8 w-8 gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">R</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Student Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Welcome back, {profileData.name}</p>
-              </div>
-            </div>
-            
-            {/* Global Search Bar */}
-            <div className="hidden md:flex flex-1 max-w-xl mx-8">
-              <SearchBar onSearch={setSearchQuery} />
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.location.href = '/student/settings'}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-              <Avatar>
-                <AvatarFallback className="gradient-primary text-white">
-                  {profileData.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-sm border-r border-gray-200">
+        <div className="p-6">
+          {/* Profile Section */}
+          <div className="flex items-center space-x-3 mb-8">
+            <div className="relative">
+              <Avatar className="h-12 w-12">
+                {profilePicture ? (
+                  <AvatarImage src={profilePicture} alt="Profile" />
+                ) : (
+                  <AvatarFallback className="bg-blue-500 text-white">
+                    {profile?.name 
+                      ? getInitials(profile.name)
+                      : 'SC'}
+                  </AvatarFallback>
+                )}
               </Avatar>
+              <button
+                onClick={triggerFileUpload}
+                className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                title="Change profile picture"
+              >
+                <Camera size={12} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureUpload}
+                className="hidden"
+              />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                {profile?.name || 'Sarah Chen'}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {profile?.major || 'Junior, Computer Science'}
+              </p>
             </div>
           </div>
-          
-          {/* Mobile Search Bar */}
-          <div className="md:hidden mt-4">
-            <SearchBar onSearch={setSearchQuery} />
+
+          {/* Navigation */}
+          <nav className="space-y-1">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleSectionClick(item.id)}
+                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Logout Button */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              className="w-full flex items-center space-x-3 px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <Tabs defaultValue="jobs" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="jobs">Find Jobs</TabsTrigger>
-            <TabsTrigger value="referrals">My Referrals</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="insights">AI Insights</TabsTrigger>
-          </TabsList>
+      {/* Main Content */}
+      <div className="flex-1 p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome, {profile?.name || 'Sarah Chen'}
+              </h1>
+              <NotificationBell 
+                userRole="student" 
+                onClick={() => setIsNotificationPanelOpen(true)} 
+              />
+            </div>
+          </div>
 
-          {/* Jobs Tab */}
-          <TabsContent value="jobs" className="space-y-6">
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Briefcase className="h-5 w-5 mr-2" />
-                  Job Opportunities
-                </CardTitle>
-                <CardDescription>
-                  Find internships and entry-level positions with referral opportunities
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by job title, company, or skills..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
+          {/* Job Opportunities Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Job Opportunities</h2>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                {getActiveJobs().length} available
+              </Badge>
+            </div>
+            
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Browse Opportunities
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Explore job and internship openings from our alumni network.
+                    </p>
+                    <Button 
+                      onClick={handleViewOpenings}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      View All Opportunities
+                      <ArrowRight size={16} className="ml-2" />
+                    </Button>
                   </div>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
+                  <div className="ml-8 hidden md:block">
+                    <div className="w-64 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Users size={40} className="mx-auto text-blue-500 mb-2" />
+                        <p className="text-sm text-gray-600">Alumni Network</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  {filteredJobs.map((job) => (
-                    <Card key={job.id} className="card-hover">
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold mb-1">{job.title}</h3>
-                            <div className="flex items-center text-muted-foreground mb-2">
-                              <Building className="h-4 w-4 mr-1" />
-                              <span className="mr-4">{job.company}</span>
-                              <span>{job.location}</span>
+                {/* Recent Jobs Preview */}
+                {recentJobs.length > 0 && (
+                  <div className="border-t pt-6">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Recent Opportunities</h4>
+                    <div className="space-y-3">
+                      {recentJobs.map((job) => (
+                        <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <Users size={16} className="text-blue-600" />
                             </div>
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {job.skills.map((skill) => (
-                                <Badge key={skill} variant="secondary" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              <span className="mr-4">Posted {job.postedDate}</span>
-                              <span>{job.applicants} applicants</span>
+                            <div>
+                              <p className="font-medium text-gray-900">{job.title}</p>
+                              <p className="text-sm text-gray-600">{job.company} • {job.type}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="flex items-center mb-2">
-                              <Brain className="h-4 w-4 mr-1 text-brand-purple" />
-                              <span className="text-sm font-medium">Match: {job.matchScore}%</span>
-                            </div>
-                            <Progress value={job.matchScore} className="w-20 mb-3" />
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                job.type === 'Internship' 
+                                  ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                  : job.type === 'Full-time'
+                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                  : 'bg-green-100 text-green-800 border-green-200'
+                              }`}
+                            >
+                              {job.type}
+                            </Badge>
                             <Button 
                               size="sm" 
-                              className="gradient-primary text-white"
-                              onClick={() => handleReferralRequest(job)}
+                              variant="outline"
+                              onClick={() => navigate('/student/opportunities')}
                             >
-                              Request Referral
+                              View
                             </Button>
                           </div>
                         </div>
-                        <div className="flex items-center text-sm text-muted-foreground pt-3 border-t">
-                          <span>Referral contact: <strong>{job.postedBy}</strong></span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Referrals Tab */}
-          <TabsContent value="referrals" className="space-y-6">
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2" />
-                  Referral Status
-                </CardTitle>
-                <CardDescription>
-                  Track your referral requests and application progress
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {referralStatus.map((referral) => (
-                    <Card key={referral.id} className="card-hover">
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold mb-1">{referral.jobTitle}</h3>
-                            <p className="text-muted-foreground mb-2">{referral.company}</p>
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              <span className="mr-4">Applied: {referral.appliedDate}</span>
-                              <span>Contact: {referral.alumni}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            {getStatusIcon(referral.status)}
-                            <Badge className={`ml-2 ${getStatusColor(referral.status)}`}>
-                              {referral.status.charAt(0).toUpperCase() + referral.status.slice(1)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Profile Picture */}
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle>Profile Picture</CardTitle>
-                  <CardDescription>Update your profile photo</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Avatar className="w-24 h-24 mx-auto mb-4">
-                    <AvatarFallback className="gradient-primary text-white text-xl">
-                      {profileData.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button variant="outline" className="w-full">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Photo
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Basic Information */}
-              <Card className="lg:col-span-2 shadow-soft">
-                <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Manage your personal details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Name</label>
-                    <Input value={profileData.name} className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <Input value={profileData.email} className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Bio</label>
-                    <textarea 
-                      className="w-full mt-1 p-3 border border-input rounded-md bg-background text-sm resize-none"
-                      rows={3}
-                      value={profileData.bio}
-                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                    />
-                  </div>
-                  <Button className="w-full gradient-primary text-white">Update Profile</Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Skills Section */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle>Skills</CardTitle>
-                <CardDescription>Manage your technical and soft skills</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {profileData.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="flex items-center gap-1">
-                      {skill}
-                      <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
-                        onClick={() => removeSkill(skill)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add a new skill..."
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-                  />
-                  <Button onClick={addSkill} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Achievements Section */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle>Achievements</CardTitle>
-                <CardDescription>Highlight your accomplishments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {profileData.achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <span className="text-sm">{achievement}</span>
-                      <Badge variant="outline" className="text-xs">Achievement</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Social Links Section */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle>Social Links</CardTitle>
-                <CardDescription>Connect your professional profiles</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">LinkedIn</label>
-                  <Input value={profileData.socialLinks.linkedin} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">GitHub</label>
-                  <Input value={profileData.socialLinks.github} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Personal Website</label>
-                  <Input value={profileData.socialLinks.website} className="mt-1" />
-                </div>
-                <Button className="w-full" variant="outline">Update Social Links</Button>
-              </CardContent>
-            </Card>
-
-            {/* Resume Section */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Resume
-                </CardTitle>
-                <CardDescription>Upload and manage your resume</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {profileData.resumeUploaded ? (
-                  <div className="text-center py-8">
-                    <div className="gradient-primary p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                      <FileText className="h-8 w-8 text-white" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-4">Resume uploaded successfully</p>
-                    <div className="space-y-2">
-                      <Button variant="outline" className="w-full">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Update Resume
-                      </Button>
-                      <Button variant="ghost" className="w-full">
-                        View Resume
-                      </Button>
+                      ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground mb-4">No resume uploaded</p>
-                    <Button className="gradient-primary text-white">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Resume
-                    </Button>
+                )}
+
+                {recentJobs.length === 0 && (
+                  <div className="border-t pt-6 text-center">
+                    <div className="text-gray-400 mb-2">
+                      <Users size={24} className="mx-auto" />
+                    </div>
+                    <p className="text-sm text-gray-600">No job opportunities available yet</p>
+                    <p className="text-xs text-gray-500">Check back later for new postings</p>
                   </div>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          {/* AI Insights Tab */}
-          <TabsContent value="insights" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Brain className="h-5 w-5 mr-2 text-brand-purple" />
-                    AI Job Match Score
-                  </CardTitle>
-                  <CardDescription>Your overall compatibility with available positions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-6">
-                    <div className="relative w-32 h-32 mx-auto mb-4">
-                      <div className="gradient-primary rounded-full w-32 h-32 flex items-center justify-center animate-pulse-glow">
-                        <span className="text-3xl font-bold text-white">{profileData.matchScore}%</span>
-                      </div>
-                    </div>
-                    <p className="text-lg font-semibold mb-2">Excellent Match</p>
-                    <p className="text-sm text-muted-foreground">
-                      Your skills align well with current job openings
+          {/* AI Resume Analyzer Section */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">AI Resume Analyzer</h2>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Analyze Your Resume
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Upload your resume and a job description to get personalized feedback.
                     </p>
+                    <Button 
+                      onClick={handleAnalyzeResume}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      Analyze Resume
+                      <ArrowRight size={16} className="ml-2" />
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle>Resume Insights</CardTitle>
-                  <CardDescription>AI-powered recommendations for your resume</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 rounded-full bg-success mt-2"></div>
-                      <div>
-                        <p className="text-sm font-medium">Strong technical skills</p>
-                        <p className="text-xs text-muted-foreground">Your React and Python skills are in high demand</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 rounded-full bg-warning mt-2"></div>
-                      <div>
-                        <p className="text-sm font-medium">Add project descriptions</p>
-                        <p className="text-xs text-muted-foreground">Include more details about your projects</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 rounded-full bg-info mt-2"></div>
-                      <div>
-                        <p className="text-sm font-medium">Consider cloud technologies</p>
-                        <p className="text-xs text-muted-foreground">AWS or Azure skills would boost your profile</p>
+                  <div className="ml-8 hidden md:block">
+                    <div className="w-64 h-32 bg-gradient-to-br from-teal-100 to-green-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <FileText size={40} className="mx-auto text-teal-600 mb-2" />
+                        <p className="text-sm text-gray-600">Resume Analysis</p>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-
-      {/* Referral Modal */}
-      <ReferralModal
-        isOpen={isReferralModalOpen}
-        onClose={() => setIsReferralModalOpen(false)}
-        job={selectedJob}
+      
+      {/* Notification Panel */}
+      <NotificationPanel
+        userRole="student"
+        isOpen={isNotificationPanelOpen}
+        onClose={() => setIsNotificationPanelOpen(false)}
       />
     </div>
   );
