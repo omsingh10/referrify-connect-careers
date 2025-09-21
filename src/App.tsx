@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentSettings from "./pages/StudentSettings";
 import AlumniDashboard from "./pages/AlumniDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AuthPage from "./pages/AuthPage";
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/settings" element={<StudentSettings />} />
             <Route path="/alumni/dashboard" element={<AlumniDashboard />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ReferralModal } from "@/components/ReferralModal";
+import { SearchBar } from "@/components/SearchBar";
 import { 
   Upload, 
   Search, 
@@ -18,19 +20,33 @@ import {
   FileText,
   Building,
   Calendar,
-  Filter
+  Filter,
+  Settings,
+  Plus,
+  X
 } from "lucide-react";
 
 const StudentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
-
-  const profileData = {
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [newSkill, setNewSkill] = useState("");
+  
+  // Enhanced profile data with additional fields
+  const [profileData, setProfileData] = useState({
     name: "Alex Johnson",
     email: "alex.johnson@university.edu",
+    bio: "Computer Science student passionate about full-stack development and machine learning.",
     skills: ["React", "Python", "Machine Learning", "JavaScript"],
+    achievements: ["Dean's List Fall 2023", "Hackathon Winner - TechCrunch Disrupt"],
+    socialLinks: {
+      linkedin: "https://linkedin.com/in/alexjohnson",
+      github: "https://github.com/alexjohnson",
+      website: "https://alexjohnson.dev"
+    },
     resumeUploaded: true,
     matchScore: 85
-  };
+  });
 
   const jobs = [
     {
@@ -127,6 +143,28 @@ const StudentDashboard = () => {
     job.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const handleReferralRequest = (job: any) => {
+    setSelectedJob(job);
+    setIsReferralModalOpen(true);
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim() && !profileData.skills.includes(newSkill.trim())) {
+      setProfileData({
+        ...profileData,
+        skills: [...profileData.skills, newSkill.trim()]
+      });
+      setNewSkill("");
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setProfileData({
+      ...profileData,
+      skills: profileData.skills.filter(skill => skill !== skillToRemove)
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -142,14 +180,32 @@ const StudentDashboard = () => {
                 <p className="text-sm text-muted-foreground">Welcome back, {profileData.name}</p>
               </div>
             </div>
+            
+            {/* Global Search Bar */}
+            <div className="hidden md:flex flex-1 max-w-xl mx-8">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+            
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">Settings</Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/student/settings'}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
               <Avatar>
                 <AvatarFallback className="gradient-primary text-white">
                   {profileData.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
             </div>
+          </div>
+          
+          {/* Mobile Search Bar */}
+          <div className="md:hidden mt-4">
+            <SearchBar onSearch={setSearchQuery} />
           </div>
         </div>
       </header>
@@ -222,7 +278,11 @@ const StudentDashboard = () => {
                               <span className="text-sm font-medium">Match: {job.matchScore}%</span>
                             </div>
                             <Progress value={job.matchScore} className="w-20 mb-3" />
-                            <Button size="sm" className="gradient-primary text-white">
+                            <Button 
+                              size="sm" 
+                              className="gradient-primary text-white"
+                              onClick={() => handleReferralRequest(job)}
+                            >
                               Request Referral
                             </Button>
                           </div>
@@ -282,11 +342,31 @@ const StudentDashboard = () => {
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Profile Picture */}
               <Card className="shadow-soft">
                 <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
-                  <CardDescription>Manage your personal details and skills</CardDescription>
+                  <CardTitle>Profile Picture</CardTitle>
+                  <CardDescription>Update your profile photo</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <Avatar className="w-24 h-24 mx-auto mb-4">
+                    <AvatarFallback className="gradient-primary text-white text-xl">
+                      {profileData.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button variant="outline" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Photo
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Basic Information */}
+              <Card className="lg:col-span-2 shadow-soft">
+                <CardHeader>
+                  <CardTitle>Basic Information</CardTitle>
+                  <CardDescription>Manage your personal details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -298,57 +378,130 @@ const StudentDashboard = () => {
                     <Input value={profileData.email} className="mt-1" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Skills</label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {profileData.skills.map((skill) => (
-                        <Badge key={skill} variant="secondary">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
+                    <label className="text-sm font-medium">Bio</label>
+                    <textarea 
+                      className="w-full mt-1 p-3 border border-input rounded-md bg-background text-sm resize-none"
+                      rows={3}
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                    />
                   </div>
-                  <Button className="w-full">Update Profile</Button>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2" />
-                    Resume
-                  </CardTitle>
-                  <CardDescription>Upload and manage your resume</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {profileData.resumeUploaded ? (
-                    <div className="text-center py-8">
-                      <div className="gradient-primary p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <FileText className="h-8 w-8 text-white" />
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-4">Resume uploaded successfully</p>
-                      <div className="space-y-2">
-                        <Button variant="outline" className="w-full">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Update Resume
-                        </Button>
-                        <Button variant="ghost" className="w-full">
-                          View Resume
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-sm text-muted-foreground mb-4">No resume uploaded</p>
-                      <Button className="gradient-primary text-white">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Resume
-                      </Button>
-                    </div>
-                  )}
+                  <Button className="w-full gradient-primary text-white">Update Profile</Button>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Skills Section */}
+            <Card className="shadow-soft">
+              <CardHeader>
+                <CardTitle>Skills</CardTitle>
+                <CardDescription>Manage your technical and soft skills</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {profileData.skills.map((skill) => (
+                    <Badge key={skill} variant="secondary" className="flex items-center gap-1">
+                      {skill}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => removeSkill(skill)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a new skill..."
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                  />
+                  <Button onClick={addSkill} variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Achievements Section */}
+            <Card className="shadow-soft">
+              <CardHeader>
+                <CardTitle>Achievements</CardTitle>
+                <CardDescription>Highlight your accomplishments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {profileData.achievements.map((achievement, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <span className="text-sm">{achievement}</span>
+                      <Badge variant="outline" className="text-xs">Achievement</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Social Links Section */}
+            <Card className="shadow-soft">
+              <CardHeader>
+                <CardTitle>Social Links</CardTitle>
+                <CardDescription>Connect your professional profiles</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">LinkedIn</label>
+                  <Input value={profileData.socialLinks.linkedin} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">GitHub</label>
+                  <Input value={profileData.socialLinks.github} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Personal Website</label>
+                  <Input value={profileData.socialLinks.website} className="mt-1" />
+                </div>
+                <Button className="w-full" variant="outline">Update Social Links</Button>
+              </CardContent>
+            </Card>
+
+            {/* Resume Section */}
+            <Card className="shadow-soft">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Resume
+                </CardTitle>
+                <CardDescription>Upload and manage your resume</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {profileData.resumeUploaded ? (
+                  <div className="text-center py-8">
+                    <div className="gradient-primary p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                      <FileText className="h-8 w-8 text-white" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">Resume uploaded successfully</p>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Update Resume
+                      </Button>
+                      <Button variant="ghost" className="w-full">
+                        View Resume
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-4">No resume uploaded</p>
+                    <Button className="gradient-primary text-white">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Resume
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* AI Insights Tab */}
@@ -412,6 +565,13 @@ const StudentDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Referral Modal */}
+      <ReferralModal
+        isOpen={isReferralModalOpen}
+        onClose={() => setIsReferralModalOpen(false)}
+        job={selectedJob}
+      />
     </div>
   );
 };
